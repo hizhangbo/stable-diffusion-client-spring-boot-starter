@@ -1,1 +1,1 @@
-"# stable-diffusion-client-spring-boot-starter" 
+# stable-diffusion-client-spring-boot-starter
