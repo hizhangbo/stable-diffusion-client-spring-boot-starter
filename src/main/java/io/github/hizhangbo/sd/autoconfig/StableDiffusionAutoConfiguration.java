@@ -2,7 +2,7 @@ package io.github.hizhangbo.sd.autoconfig;
 
 import io.github.hizhangbo.sd.client.StableDiffusionClient;
 import io.github.hizhangbo.sd.property.StableDiffusionProperties;
-import okhttp3.OkHttpClient;
+import io.github.hizhangbo.sd.client.HttpClient;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,7 +18,12 @@ public class StableDiffusionAutoConfiguration {
     }
 
     @Bean
-    public StableDiffusionClient stableDiffusionClient() {
-        return new StableDiffusionClient(stableDiffusionProperties);
+    public HttpClient httpClient() {
+        return new HttpClient(stableDiffusionProperties);
+    }
+
+    @Bean
+    public StableDiffusionClient stableDiffusionClient(HttpClient httpClient) {
+        return new StableDiffusionClient(httpClient);
     }
 }

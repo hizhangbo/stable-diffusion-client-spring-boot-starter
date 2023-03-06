@@ -1,5 +1,7 @@
-package io.github.hizhangbo.sd.util;
+package io.github.hizhangbo.sd.client;
 
+import io.github.hizhangbo.sd.property.StableDiffusionProperties;
+import io.github.hizhangbo.sd.util.MediaTypeConst;
 import okhttp3.*;
 import org.jetbrains.annotations.NotNull;
 
@@ -8,6 +10,15 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class HttpClient {
+
+    private final StableDiffusionProperties stableDiffusionProperties;
+    private final String serverUrl;
+
+    public HttpClient(StableDiffusionProperties stableDiffusionProperties) {
+        this.stableDiffusionProperties = stableDiffusionProperties;
+        serverUrl = stableDiffusionProperties.getServerUrl();
+    }
+
     private static final OkHttpClient okHttpClient = new OkHttpClient.Builder()
             // 连接超时
             .connectTimeout(10, TimeUnit.SECONDS)
@@ -17,8 +28,8 @@ public class HttpClient {
             .readTimeout(10, TimeUnit.HOURS)
             .build();
 
-    public static String doGet(String url) throws IOException {
-        Request request = new Request.Builder().url(url).build();
+    public String doGet(String api) throws IOException {
+        Request request = new Request.Builder().url(serverUrl + api).build();
 
         try (Response response = okHttpClient.newCall(request).execute()) {
             if (response.isSuccessful()) {
@@ -29,26 +40,27 @@ public class HttpClient {
         }
     }
 
-    public static String doPost(String url, String json) throws IOException {
-        RequestBody jsonBody = RequestBody.create(json, MediaTypeConst.JSON);
-        return createRequest(url, jsonBody);
+    public String doPost(String api, String json) throws IOException {
+        RequestBody jsonBody = RequestBody.Companion.create(json, MediaTypeConst.JSON);
+        return createRequest(serverUrl + api, jsonBody);
     }
 
-    public static String doPost(String url, Map<String, String> paramsMap) throws IOException {
+    public String doPost(String api, Map<String, String> paramsMap) throws IOException {
         FormBody.Builder builder = new FormBody.Builder();
         for (String key : paramsMap.keySet()) {
             builder.add(key, paramsMap.get(key));
         }
         RequestBody formBody = builder.build();
-        return createRequest(url, formBody);
+        return createRequest(api, formBody);
     }
 
     @NotNull
-    private static String createRequest(String url, RequestBody body) throws IOException {
+    private String createRequest(String api, RequestBody body) throws IOException {
         Request request = new Request.Builder()
-                .url(url)
+                .url(serverUrl + api)
                 .post(body)
                 .build();
+
         try (Response response = okHttpClient.newCall(request).execute()) {
             if (response.isSuccessful()) {
                 return response.body().string();
