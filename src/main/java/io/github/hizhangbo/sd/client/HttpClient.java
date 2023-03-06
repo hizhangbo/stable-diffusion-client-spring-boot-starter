@@ -41,8 +41,8 @@ public class HttpClient {
     }
 
     public String doPost(String api, String json) throws IOException {
-        RequestBody jsonBody = RequestBody.Companion.create(json, MediaTypeConst.JSON);
-        return createRequest(serverUrl + api, jsonBody);
+        RequestBody jsonBody = RequestBody.create(MediaTypeConst.JSON, json);
+        return createRequest(api, jsonBody);
     }
 
     public String doPost(String api, Map<String, String> paramsMap) throws IOException {
