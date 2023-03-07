@@ -13,6 +13,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class StableDiffusionClient {
 
@@ -60,12 +61,14 @@ public class StableDiffusionClient {
         return response;
     }
 
-    public JSONObject postTxt2Img(Txt2ImgRequest request) throws IOException {
+    public JSONObject postTxt2Img(Txt2ImgRequest request) throws IOException, InterruptedException {
         String response = "";
         try {
             response = httpClient.doPost(APIConst.POST_TXT2IMG, JSONObject.toJSONString(request));
         } catch (NoHttpResponseException e) {
-            return null;
+            // 3秒后重试
+            TimeUnit.SECONDS.sleep(3);
+            response = httpClient.doPost(APIConst.POST_TXT2IMG, JSONObject.toJSONString(request));
         }
         final JSONObject jsonResponse = JSONObject.parseObject(response);
 
