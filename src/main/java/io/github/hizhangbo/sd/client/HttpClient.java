@@ -1,13 +1,19 @@
 package io.github.hizhangbo.sd.client;
 
 import io.github.hizhangbo.sd.property.StableDiffusionProperties;
-import io.github.hizhangbo.sd.util.MediaTypeConst;
-import okhttp3.*;
-import org.jetbrains.annotations.NotNull;
+import org.apache.hc.client5.http.config.RequestConfig;
+import org.apache.hc.client5.http.fluent.Executor;
+import org.apache.hc.client5.http.fluent.Form;
+import org.apache.hc.client5.http.fluent.Request;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.NameValuePair;
+import org.apache.hc.core5.util.Timeout;
 
 import java.io.IOException;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 public class HttpClient {
 
@@ -19,54 +25,40 @@ public class HttpClient {
         serverUrl = stableDiffusionProperties.getServerUrl();
     }
 
-    private static final OkHttpClient okHttpClient = new OkHttpClient.Builder()
-            // 连接超时
-            .connectTimeout(10, TimeUnit.SECONDS)
-            // 写入超时 请求体较大时，有可能触发
-            .writeTimeout(10, TimeUnit.SECONDS)
-            // 读取超时 服务端响应时间
-            .readTimeout(10, TimeUnit.HOURS)
+    private final RequestConfig requestConfig = RequestConfig.custom()
+            .setConnectionRequestTimeout(Timeout.ofSeconds(10))
+            .setResponseTimeout(Timeout.ofHours(1))
             .build();
 
-    public String doGet(String api) throws IOException {
-        Request request = new Request.Builder().url(serverUrl + api).build();
+    private final CloseableHttpClient client = HttpClients.custom()
+            .setDefaultRequestConfig(requestConfig)
+            .build();
 
-        try (Response response = okHttpClient.newCall(request).execute()) {
-            if (response.isSuccessful()) {
-                return response.body().string();
-            } else {
-                throw new IOException("Unexpected code " + response);
-            }
-        }
+    private final Executor executor = Executor.newInstance(client);
+
+    public String doGet(String api) throws IOException {
+        return executor
+                .execute(Request.get(serverUrl + api))
+                .returnContent()
+                .asString(StandardCharsets.UTF_8);
     }
 
     public String doPost(String api, String json) throws IOException {
-        RequestBody jsonBody = RequestBody.create(MediaTypeConst.JSON, json);
-        return createRequest(api, jsonBody);
+        return executor
+                .execute(Request.post(serverUrl + api).bodyString(json, ContentType.APPLICATION_JSON))
+                .returnContent()
+                .asString(StandardCharsets.UTF_8);
     }
 
-    public String doPost(String api, Map<String, String> paramsMap) throws IOException {
-        FormBody.Builder builder = new FormBody.Builder();
-        for (String key : paramsMap.keySet()) {
-            builder.add(key, paramsMap.get(key));
+    public String doPost(String api, List<NameValuePair> params) throws IOException {
+        final Form bodyForm = Form.form();
+        for (NameValuePair param : params) {
+            bodyForm.add(param.getName(), param.getValue());
         }
-        RequestBody formBody = builder.build();
-        return createRequest(api, formBody);
-    }
 
-    @NotNull
-    private String createRequest(String api, RequestBody body) throws IOException {
-        Request request = new Request.Builder()
-                .url(serverUrl + api)
-                .post(body)
-                .build();
-
-        try (Response response = okHttpClient.newCall(request).execute()) {
-            if (response.isSuccessful()) {
-                return response.body().string();
-            } else {
-                throw new IOException("Unexpected code " + response);
-            }
-        }
+        return executor
+                .execute(Request.post(serverUrl + api).bodyForm(bodyForm.build()))
+                .returnContent()
+                .asString(StandardCharsets.UTF_8);
     }
 }
