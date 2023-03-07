@@ -5,7 +5,11 @@ import com.alibaba.fastjson2.JSONObject;
 import com.alibaba.fastjson2.JSONValidator;
 import io.github.hizhangbo.sd.model.*;
 import io.github.hizhangbo.sd.util.APIConst;
+import io.github.hizhangbo.sd.util.ImageUtil;
+import org.apache.hc.core5.http.NoHttpResponseException;
+import org.springframework.util.CollectionUtils;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -54,6 +58,30 @@ public class StableDiffusionClient {
     public String postOptions(Options options) throws IOException {
         String response = httpClient.doPost(APIConst.POST_OPTIONS, JSONObject.toJSONString(options));
         return response;
+    }
+
+    public JSONObject postTxt2Img(Txt2ImgRequest request) throws IOException {
+        String response = "";
+        try {
+            response = httpClient.doPost(APIConst.POST_TXT2IMG, JSONObject.toJSONString(request));
+        } catch (NoHttpResponseException e) {
+            return null;
+        }
+        final JSONObject jsonResponse = JSONObject.parseObject(response);
+
+        if (jsonResponse.containsKey("images")) {
+            final JSONArray imageArray = jsonResponse.getJSONArray("images");
+
+            if (!CollectionUtils.isEmpty(imageArray)) {
+                for (Object o : imageArray) {
+                    final String image = o.toString();
+                    final File localImage = ImageUtil.base64ToWebP(image, httpClient.savePath);
+                    System.out.println(localImage.getAbsolutePath());
+                }
+            }
+        }
+
+        return jsonResponse;
     }
 
     public Estimation getQueueStatus() throws IOException {

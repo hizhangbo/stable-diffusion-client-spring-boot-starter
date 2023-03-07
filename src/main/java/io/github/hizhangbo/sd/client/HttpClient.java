@@ -19,10 +19,12 @@ public class HttpClient {
 
     private final StableDiffusionProperties stableDiffusionProperties;
     private final String serverUrl;
+    public final String savePath;
 
     public HttpClient(StableDiffusionProperties stableDiffusionProperties) {
         this.stableDiffusionProperties = stableDiffusionProperties;
         serverUrl = stableDiffusionProperties.getServerUrl();
+        savePath = stableDiffusionProperties.getSavePath();
     }
 
     private final RequestConfig requestConfig = RequestConfig.custom()
