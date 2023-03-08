@@ -56,12 +56,20 @@ public class StableDiffusionClient {
         return null;
     }
 
+    public Options getOptions() throws IOException {
+        String response = httpClient.doGet(APIConst.GET_OPTIONS);
+        if (JSONValidator.from(response).validate()) {
+            return JSONObject.parseObject(response, Options.class);
+        }
+        return null;
+    }
+
     public String postOptions(Options options) throws IOException {
         String response = httpClient.doPost(APIConst.POST_OPTIONS, JSONObject.toJSONString(options));
         return response;
     }
 
-    public JSONObject postTxt2Img(Txt2ImgRequest request) throws IOException, InterruptedException {
+    public List<File> postTxt2Img(Txt2ImgRequest request) throws IOException, InterruptedException {
         String response = "";
         try {
             response = httpClient.doPost(APIConst.POST_TXT2IMG, JSONObject.toJSONString(request));
@@ -72,6 +80,7 @@ public class StableDiffusionClient {
         }
         final JSONObject jsonResponse = JSONObject.parseObject(response);
 
+        List<File> result = new ArrayList<>();
         if (jsonResponse.containsKey("images")) {
             final JSONArray imageArray = jsonResponse.getJSONArray("images");
 
@@ -79,12 +88,12 @@ public class StableDiffusionClient {
                 for (Object o : imageArray) {
                     final String image = o.toString();
                     final File localImage = ImageUtil.base64ToWebP(image, httpClient.savePath);
-                    System.out.println(localImage.getAbsolutePath());
+                    result.add(localImage);
                 }
             }
         }
 
-        return jsonResponse;
+        return result;
     }
 
     public Estimation getQueueStatus() throws IOException {
