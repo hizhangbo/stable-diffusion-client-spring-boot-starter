@@ -13,6 +13,7 @@ import org.apache.hc.core5.util.Timeout;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.List;
 
 public class HttpClient {
@@ -20,12 +21,6 @@ public class HttpClient {
     private final StableDiffusionProperties stableDiffusionProperties;
     private final String serverUrl;
     public final String savePath;
-
-    public HttpClient(StableDiffusionProperties stableDiffusionProperties) {
-        this.stableDiffusionProperties = stableDiffusionProperties;
-        serverUrl = stableDiffusionProperties.getServerUrl();
-        savePath = stableDiffusionProperties.getSavePath();
-    }
 
     private final RequestConfig requestConfig = RequestConfig.custom()
             .setConnectionRequestTimeout(Timeout.ofSeconds(10))
@@ -38,16 +33,22 @@ public class HttpClient {
 
     private final Executor executor = Executor.newInstance(client);
 
+    public HttpClient(StableDiffusionProperties stableDiffusionProperties) {
+        this.stableDiffusionProperties = stableDiffusionProperties;
+        serverUrl = stableDiffusionProperties.getServerUrl();
+        savePath = stableDiffusionProperties.getSavePath();
+    }
+
     public String doGet(String api) throws IOException {
         return executor
-                .execute(Request.get(serverUrl + api))
+                .execute(setBasicAuthenticationHeader(Request.get(serverUrl + api)))
                 .returnContent()
                 .asString(StandardCharsets.UTF_8);
     }
 
     public String doPost(String api, String json) throws IOException {
         return executor
-                .execute(Request.post(serverUrl + api).bodyString(json, ContentType.APPLICATION_JSON))
+                .execute(setBasicAuthenticationHeader(Request.post(serverUrl + api).bodyString(json, ContentType.APPLICATION_JSON)))
                 .returnContent()
                 .asString(StandardCharsets.UTF_8);
     }
@@ -59,8 +60,20 @@ public class HttpClient {
         }
 
         return executor
-                .execute(Request.post(serverUrl + api).bodyForm(bodyForm.build()))
+                .execute(setBasicAuthenticationHeader(Request.post(serverUrl + api).bodyForm(bodyForm.build())))
                 .returnContent()
                 .asString(StandardCharsets.UTF_8);
+    }
+
+    private Request setBasicAuthenticationHeader(Request request) {
+        if (stableDiffusionProperties.getAuth()) {
+            String username = stableDiffusionProperties.getUsername();
+            String password = stableDiffusionProperties.getPassword();
+
+            String valueToEncode = username + ":" + password;
+            String basicHeaderValue = "Basic " + Base64.getEncoder().encodeToString(valueToEncode.getBytes());
+            request.setHeader("Authorization", basicHeaderValue);
+        }
+        return request;
     }
 }
