@@ -19,7 +19,6 @@ import java.util.List;
 public class HttpClient {
 
     private final StableDiffusionProperties stableDiffusionProperties;
-    private final String serverUrl;
     public final String savePath;
 
     private final RequestConfig requestConfig = RequestConfig.custom()
@@ -35,20 +34,19 @@ public class HttpClient {
 
     public HttpClient(StableDiffusionProperties stableDiffusionProperties) {
         this.stableDiffusionProperties = stableDiffusionProperties;
-        serverUrl = stableDiffusionProperties.getServerUrl();
         savePath = stableDiffusionProperties.getSavePath();
     }
 
     public String doGet(String api) throws IOException {
         return executor
-                .execute(setBasicAuthenticationHeader(Request.get(serverUrl + api)))
+                .execute(setBasicAuthenticationHeader(Request.get(stableDiffusionProperties.getServerUrl() + api)))
                 .returnContent()
                 .asString(StandardCharsets.UTF_8);
     }
 
     public String doPost(String api, String json) throws IOException {
         return executor
-                .execute(setBasicAuthenticationHeader(Request.post(serverUrl + api).bodyString(json, ContentType.APPLICATION_JSON)))
+                .execute(setBasicAuthenticationHeader(Request.post(stableDiffusionProperties.getServerUrl() + api).bodyString(json, ContentType.APPLICATION_JSON)))
                 .returnContent()
                 .asString(StandardCharsets.UTF_8);
     }
@@ -60,7 +58,7 @@ public class HttpClient {
         }
 
         return executor
-                .execute(setBasicAuthenticationHeader(Request.post(serverUrl + api).bodyForm(bodyForm.build())))
+                .execute(setBasicAuthenticationHeader(Request.post(stableDiffusionProperties.getServerUrl() + api).bodyForm(bodyForm.build())))
                 .returnContent()
                 .asString(StandardCharsets.UTF_8);
     }
